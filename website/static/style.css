@@ -1,0 +1,146 @@
+body, html {
+    height: 100vh;
+    margin: 0;
+    background: -webkit-linear-gradient(to right, #80FFDB, #64DFDF, #48BFE3, #5390D9, #5E60CE);
+    background: linear-gradient(to right, #80FFDB, #64DFDF, #48BFE3, #5390D9, #5E60CE)
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#content-area {
+    border: none; /* Remove the default border */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Add a shadow effect */
+    border-radius: 20px;
+}
+
+#content-area h3 {
+    margin: 0;
+}
+
+#content-area .form-control{
+    border-color: transparent;
+}
+
+#content-area .form-control:focus {
+    border-color: transparent;
+    outline: none;
+    box-shadow: inset 0px 0px 0px 1px transparent;
+}
+
+#content-area .search-container {
+    border: 1px solid rgba(128, 128, 128, 0.5);
+    border-radius: 20px;
+}
+
+#content-area #send-input, #content-area #send-input:focus {
+    border: 1px solid rgba(128, 128, 128, 0.5);
+    border-radius: 20px;
+    align-items: center;
+}
+
+.action-icon > i {
+    font-size: 24px;
+    margin-left: 20px;
+    /* float: right; */
+
+    &:hover {
+        color:gray;
+    }
+}
+
+#contact-list, #settings-list, #contact-result {
+    height: 55vh; 
+    max-height: 55vh; 
+    overflow-y: auto;
+    position: relative;
+}
+
+#msg-box, #settings-box {
+    height: 55vh; 
+    max-height: 55vh; 
+    overflow-y: auto;
+    position: relative;
+}
+
+.contact-card > a, .settings-card > a {
+    text-decoration: none;
+}
+
+.contact-card:hover, .settings-card:hover {
+    background-color: #fafafa;
+}
+
+.contact-card:active, .selected, .selected:hover,
+.settings-card:active, .current-settings, .current-settings:hover {
+    background-color: #efefef;
+}
+
+.msg-preview {
+    white-space: nowrap; 
+    overflow-x: hidden; 
+    text-overflow: ellipsis;
+    max-width: 20vh;
+}
+
+.recipient-msg {
+    display: inline-block;
+    background-color: #f5f6f7;
+    word-wrap: break-word;
+    max-width: 40%;
+}
+
+.sender-msg {
+    display: inline-block;
+    word-wrap: break-word;
+    max-width: 40%;
+}
+
+@media (max-width: 1199.98px) {
+    .recipient-msg, .sender-msg {
+        max-width: 60%;
+    }
+}
+
+.overlay {
+    position: fixed; /* Fixed position so it covers the entire viewport */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent gray shade */
+    z-index: 1000; /* A high z-index to make it appear on top of other content */
+}
+
+.overlay-content {
+    position: absolute; /* Position this content relative to the overlay */
+    top: 50%; /* Center vertically */
+    left: 50%; /* Center horizontally */
+    transform: translate(-50%, -50%); /* Center both horizontally and vertically */
+}
+
+#overlay-box {
+    width: 80%;
+}
+
+@media (min-width: 768px) {
+    #overlay-box {
+        width: 60vh;
+    }
+}
+
+.textarea-container {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+  
+#content-area textarea {
+    flex-grow: 1;
+    overflow-y: auto;
+    resize: none;
+    max-height: 58px; /* Set the maximum height for the textarea */
+}
+  

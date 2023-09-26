@@ -1,0 +1,7 @@
+Flask
+Flask-Login
+Flask-Session
+Flask-SocketIO
+Flask-SQLAlchemy
+psycopg2-binary
+Werkzeug

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Log in{% endblock %}
+
+{% block content %}
+    <div class="col-12 mb-4 mb-md-0">
+        <form action="{{ url_for('auth.process_login') }}" method="post">
+            <div class="p-3 text-center">
+                <h3>Welcome back!</h3>
+            </div>
+            {% if get_flashed_messages() %}
+                <div class="alert alert-danger mb-0 text-center" role="alert">
+                    {{ get_flashed_messages() | join(" ") }}
+                </div>
+            {% endif %}
+            <div class="p-3">
+                <div class="input-group mb-3 border-bottom">
+                    <span class="input-group-text border-0 bg-transparent">
+                        <i class="bi bi-person"></i>
+                    </span>
+                    <input autocomplete="off" autofocus type="text" class="form-control rounded" placeholder="Username" name="username" id="username" value="{{ username }}" aria-label="Username"/>
+                </div>
+                <div class="input-group mb-3 border-bottom">
+                    <span class="input-group-text border-0 bg-transparent">
+                        <i class="bi bi-key"></i>
+                    </span>
+                    <input type="password" class="form-control rounded" placeholder="Password" name="password" id="password" aria-label="Username"/>
+                    <span class="input-group-text border-0 bg-transparent">
+                        <i class="bi bi-eye-slash" role="button" id="password-visible"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="d-grid gap-2 col-6 mx-auto pb-3">
+                <button class="btn btn-primary" type="submit">Sign in</button>
+            </div>
+        </form>
+        <div class="p-3 text-center">
+            <p class="text-muted m-0">Not registered? <a href="/register" style="text-decoration: none;">Create an account</a></p>
+        </div>
+    </div>
+{% endblock %}
