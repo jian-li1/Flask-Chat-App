@@ -1,1 +1,1 @@
-# Flask-Chat-App
+# Flask Chat Application
