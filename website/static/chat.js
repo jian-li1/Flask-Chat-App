@@ -1,4 +1,4 @@
-import { newChatSearch, messageBox, overlayBox, deleteMsgConfirm } from "./elements.js";
+import { newChatSearch, messageBox, overlayBox, deleteMsgConfirm } from "./templates.js";
 
 const socketio = io();
 let lastSentBy;
