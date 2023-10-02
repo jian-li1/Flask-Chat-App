@@ -9,7 +9,7 @@ class Account(db.Model, UserMixin):
     last_name = db.Column(db.String(150))
     password = db.Column(db.String(150))
     date_created = db.Column(db.DateTime(timezone=True), default=func.now())
-    chats = db.relationship("Member", foreign_keys="[Member.user_id]",  backref="user")
+    chats = db.relationship("Member", foreign_keys="[Member.user_id]", backref="user")
     messages = db.relationship("Message", foreign_keys="[Message.sender_id]", backref="user")
 
 class Chat(db.Model):
