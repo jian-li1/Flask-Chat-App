@@ -1,44 +1,33 @@
 import { newChatSearch, messageBox, overlayBox, deleteMsgConfirm } from "./templates.js";
 
 const socketio = io();
-let lastSentBy;
+let firstMsgSentBy;
 
-const chatBubble = (data) => {
+const chatBubble = (data, includeHeaders=true) => {
     const attr = {
         "recipient": {padding: "ps-2", margin: "ms-3", align: "justify-content-start", msg: "recipient-msg", color: ""},
         "sender": {padding: "pe-2", margin: "me-3", align: "justify-content-end", msg: "sender-msg", color: "text-white bg-primary"}
     };
     const userRole = attr[data.user_role];
     const name = (data.user_role == "recipient") ? data.name : "You";
-    let headers = `
-    <div class="d-flex flex-row ${userRole.align}">
-        <p class="small ${userRole.padding} ${userRole.margin} mb-1 rounded-3 text-muted"><b>${name}</b></p>
-    </div>
-    `;
-    let body = `
-    <div class="d-flex flex-row ${userRole.align}">
-        <p class="p-2 ${userRole.margin} mb-1 rounded-4 ${userRole.msg} ${userRole.color}">
-            ${data.text}
-        </p>
-    </div>
-    `;
 
-    if ((lastSentBy) && lastSentBy == name) {
+    let headers = document.createElement("div");
+    headers.classList.add("d-flex", "flex-row", userRole.align);
+    headers.innerHTML = `<p class="small ${userRole.padding} ${userRole.margin} mb-1 rounded-3 text-muted"><b>${name}</b></p>`;
+
+    let body = document.createElement("div");
+    body.classList.add("d-flex", "flex-row", userRole.align);
+    body.innerHTML = `<p class="p-2 ${userRole.margin} mb-1 rounded-4 ${userRole.msg} ${userRole.color}">${data.text}</p>`;
+
+    if (!includeHeaders) {
         headers = "";
     }
-    lastSentBy = name;
 
     if (hasOnlyEmojis(data.text)) {
-        body = `
-        <div class="d-flex flex-row ${userRole.align}">
-            <h3 class="p-2 ${userRole.margin} mb-1 rounded-4 ${userRole.msg} ${userRole.color}">
-                ${data.text}
-            </h3>
-        </div>
-        `;
+        body.innerHTML = `<h3 class="p-2 ${userRole.margin} mb-1 rounded-4 ${userRole.msg} ${userRole.color}">${data.text}</h3>`;
     }
 
-    return `<div>${headers}${body}</div>`;
+    return `<div>${headers.outerHTML || headers}${body.outerHTML}</div>`;
 }
 
 const hasOnlyEmojis = (text) => {
@@ -113,6 +102,11 @@ const searchNewUser = () => {
     const form = document.querySelector("#search-new-user");
     const newUserSearch = form.querySelector("input");
     newUserSearch.focus();
+    newUserSearch.addEventListener("keydown", (event) => {
+        if (event.key == "Enter") {
+            event.preventDefault();
+        }
+    });
     newUserSearch.addEventListener("input", () => {
         const formData = new FormData(form);
         clearTimeout(timeoutId);
@@ -255,26 +249,105 @@ const displayChat = async () => {
                     textBox.parentNode.parentNode.classList.add("pt-3", "mt-3");
                 }
             });
+            
+            let lastMsgSentBy;
+            let msgBuffer = "";
+            data.messages.forEach(msg => {
+                let includeHeaders = ((lastMsgSentBy) && (lastMsgSentBy == msg.username)) ? false : true;
+                msgBuffer += chatBubble(msg, includeHeaders);
+                lastMsgSentBy = msg.username;
+            });
+            messageContainer.innerHTML = msgBuffer;
+
+            if (data.messages.length) {
+                firstMsgSentBy = data.messages[0].username;
+            }
 
             socketio.on("new_message", (msgData) => {
                 if (msgData.chat_id == data.chat_id) {
                     // console.log(`Inside chat: ${msgData.text} in chat ${msgData.chat_id}`);
-                    messageContainer.innerHTML += chatBubble(msgData);
+                    let includeHeaders = ((lastMsgSentBy) && (lastMsgSentBy == msgData.username)) ? false : true;
+                    messageContainer.innerHTML += chatBubble(msgData, includeHeaders);
                     messageContainer.scrollTop = messageContainer.scrollHeight;
+                    lastMsgSentBy = msgData.username;
+                    observeScrolling(data.chat_id);
                 }
             });
-
-            data.messages.forEach(msg => messageContainer.innerHTML += chatBubble(msg));
-            messageContainer.scrollTop = messageContainer.scrollHeight;
 
             document.querySelector("#delete-chat").addEventListener("click", () => confirmDeleteChat(data.chat_id));
 
             const rootElement = document.querySelector(".pickerContainer");
             const picker = picmo.createPicker({ rootElement });
             picker.addEventListener('emoji:select', event => document.querySelector("#send-input").value += event.emoji);
+            
+            if (!data.all_msg_loaded) {
+                const sentinelElement = `
+                <div class="d-flex justify-content-center mb-3" id="sentinel">
+                    <div class="spinner-border text-secondary" role="status"></div>
+                </div>
+                `;
+                messageContainer.innerHTML = sentinelElement + messageContainer.innerHTML;
+                observeScrolling(data.chat_id);
+            }
+            messageContainer.scrollTop = messageContainer.scrollHeight;
         })
         .catch(error => console.error(error));
 };
+
+let intersectionObserver;
+const observeScrolling = (chatID) => {
+    const sentinel = document.querySelector("#sentinel");
+    if (intersectionObserver) {
+        intersectionObserver.disconnect();
+    }
+    intersectionObserver =  new IntersectionObserver(entries => {
+        if (entries[0].intersectionRatio <= 0) {
+            return;
+        }
+        setTimeout(() => {
+            loadMessage(chatID);
+        }, 500);
+    });
+    if (sentinel) {
+        intersectionObserver.observe(sentinel);
+    }
+};
+
+const loadMessage = (chatID) => {
+    const messageContainer = document.querySelector("#msg-box");
+    const oldScrollHeight = messageContainer.scrollHeight;
+    fetch(`/load-msg/${chatID}`, {
+        method: "GET",
+        headers: {"X-Requested-With": "XMLHttpRequest"}
+    })
+        .then(response => {
+            if (!response.ok)
+                throw new Error(`Response status code: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            let msgBuffer = "";
+            let lastSentBy;
+            const firstMsgElement = messageContainer.querySelector(":nth-child(2)");
+            data.messages.forEach(msg => {
+                let includeHeaders = ((lastSentBy) && (lastSentBy == msg.username)) ? false : true;
+                msgBuffer += chatBubble(msg, includeHeaders);
+                lastSentBy = msg.username;
+            });
+            messageContainer.firstElementChild.insertAdjacentHTML("afterend", msgBuffer);
+
+            if (lastSentBy == firstMsgSentBy && firstMsgElement) {
+                firstMsgElement.firstElementChild.remove();
+            }
+            firstMsgSentBy = data.messages[0].username;
+
+            if (data.all_msg_loaded) {
+                document.querySelector("#sentinel").remove();
+            }
+            messageContainer.scrollTop = Math.max(messageContainer.scrollTop, messageContainer.scrollHeight - oldScrollHeight);
+        })
+        .catch(error => console.error(error));
+}
 
 const clearChat = () => {
     const rightCol = document.querySelector("#right-col");
@@ -340,11 +413,11 @@ const previewMessage = () => {
     });  
 };
 
-const sendMessage = (textBox, userId, chatId) => {
+const sendMessage = (textBox, userId, chatID) => {
     const textValue = textBox.value;
     if (textValue.trim() == "") 
         return;
-    socketio.emit("new_message", { recipient_id: userId, chat_id: chatId, text: textValue });
+    socketio.emit("new_message", { recipient_id: userId, chat_id: chatID, text: textValue });
     textBox.value = "";
     textBox.focus();
 };
