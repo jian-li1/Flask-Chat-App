@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, redirect, url_for, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session
 from flask_login import login_required, current_user
 from .models import Account, Chat, Message, Member
 from . import db
 from time import time
 
 views = Blueprint("views", __name__)
+load_msg_limit = 20
 
 def full_name(user):
     return f"{user.first_name} {user.last_name}"
@@ -123,15 +124,29 @@ def chat_room(chat_id):
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         if not valid_chat:
             return {}, 400
+        msg_count = Message.query.filter_by(chat_id=chat_id, user_id=current_user.id).count()
+        session["msg_range_high"] = msg_count
+        session["msg_range_low"] = max(session["msg_range_high"]-load_msg_limit, 0)
+
+        return load_msg(chat_id)
+    if not valid_chat:
+        return redirect(url_for("views.chat"))
+    return chat(chat_id)
+
+@views.route("/load-msg/<int:chat_id>")
+@login_required
+def load_msg(chat_id):
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         recipient = Member.query.filter(Member.user_id != current_user.id, Member.chat_id == chat_id).first()
-        messages = Message.query.filter_by(chat_id=chat_id, user_id=current_user.id).order_by(Message.date_created).all() or []
+        messages = Message.query.filter_by(chat_id=chat_id, user_id=current_user.id).order_by(Message.date_created).slice(session["msg_range_low"], session["msg_range_high"]).all() or []
+
         data = {
             "chat_id": chat_id,
             "recipient": {
                 "name": full_name(recipient.user),
                 "user_id": recipient.user.id
             },
-            "messages": [] 
+            "messages": []
         }
 
         for msg in messages:
@@ -145,8 +160,11 @@ def chat_room(chat_id):
             msg_data["user_role"] = "sender" if msg.sender_id == current_user.id else "recipient"
             data["messages"].append(msg_data)
         
+        # print(session["msg_range_low"], session["msg_range_high"])
+        session["msg_range_high"] = max(session["msg_range_high"]-load_msg_limit, 0)
+        session["msg_range_low"] = max(session["msg_range_low"]-load_msg_limit, 0)
+        data["all_msg_loaded"] = session["msg_range_high"] == session["msg_range_low"]
+        # print(session["msg_range_low"], session["msg_range_high"])
+        
         return jsonify(data)
-    if not valid_chat:
-        return redirect(url_for("views.chat"))
     return chat(chat_id)
-
