@@ -44,7 +44,7 @@ def message(data):
     msg_data = {
         "chat_id": data["chat_id"],
         "name": full_name(current_user),
-        "username": current_user.id,
+        "username": current_user.username,
         "text": text,
         "user_role": "recipient"
     }
